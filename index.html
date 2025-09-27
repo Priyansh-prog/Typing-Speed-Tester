@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typing Speed Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding-top: 50px;
+        }
+        
+        #main-content {
+            width: 90%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 2px solid #cccccc;
+            background-color: #ffffff;
+            text-align: center;
+        }
+
+        #stats-container {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #dddddd;
+        }
+
+        .stat-block {
+            display: inline-block;
+            margin: 0 25px;
+        }
+
+        .stat-block .label {
+            font-size: 1em;
+            color: #555555;
+        }
+
+        .stat-block .value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        #text-display {
+            border: 1px solid #dddddd;
+            padding: 15px;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            text-align: left;
+            font-family: 'Courier New', Courier, monospace;
+            line-height: 1.6;
+        }
+
+        #restart-btn {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        .caret {
+            animation: blink 1s infinite;
+            background-color: black;
+            display: inline-block;
+            width: 1px;
+            margin-left: -1px;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-content">
+        <h1>Typing Speed Test</h1>
+        
+        <!-- Stats Display -->
+        <div id="stats-container">
+            <div class="stat-block">
+                <div class="label">Time</div>
+                <div id="timer" class="value">60</div>
+            </div>
+            <div class="stat-block">
+                <div class="label">WPM</div>
+                <div id="wpm" class="value">0</div>
+            </div>
+            <div class="stat-block">
+                <div class="label">Accuracy</div>
+                <div id="accuracy" class="value">100</div>
+            </div>
+        </div>
+
+        <!-- Text Display -->
+        <div id="text-display" style="user-select: none;">
+
+        </div>
+
+
+        <input type="text" id="text-input" style="position: absolute; opacity: 0; width: 0; height: 0;" autofocus>
+
+        <!-- Restart Button -->
+        <div>
+            <button id="restart-btn">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const textDisplay = document.getElementById('text-display');
+        const textInput = document.getElementById('text-input');
+        const timerEl = document.getElementById('timer');
+        const wpmEl = document.getElementById('wpm');
+        const accuracyEl = document.getElementById('accuracy');
+        const restartBtn = document.getElementById('restart-btn');
+
+        const paragraphs = [
+            "The quick brown fox jumps over the lazy dog. This sentence contains all the letters of the alphabet. It is often used for practicing typing and testing fonts.",
+            "Technology has revolutionized the way we live and work. From smartphones to artificial intelligence, innovation continues to shape our future. The digital age connects us in unprecedented ways.",
+            "The sun dipped below the horizon, painting the sky in shades of orange and pink. A gentle breeze rustled the leaves of the trees, creating a soothing melody. It was a perfect evening to relax and reflect.",
+            "To be a successful programmer, one must be a problem solver at heart. Writing code is not just about syntax, but about logical thinking and creating efficient solutions to complex challenges.",
+            "The universe is vast and full of mysteries. Astronomers use powerful telescopes to peer into distant galaxies, searching for answers about the origins of cosmos and the possibility of extraterrestrial life."
+        ];
+
+        let timer;
+        let timeRemaining = 60;
+        let totalTyped = 0;
+        let correctTyped = 0;
+        let isTestActive = false;
+        
+
+        function initializeTest() {
+            const randomIndex = Math.floor(Math.random() * paragraphs.length);
+            const paragraph = paragraphs[randomIndex];
+            textDisplay.innerHTML = '';
+            
+           
+            paragraph.split('').forEach((char, index) => {
+                const charSpan = document.createElement('span');
+                charSpan.innerText = char;
+                textDisplay.appendChild(charSpan);
+            });
+            
+
+            const caret = document.createElement('span');
+            caret.classList.add('caret');
+            caret.innerHTML = '&nbsp;'; // Non-breaking space
+            textDisplay.insertBefore(caret, textDisplay.firstChild);
+
+            resetState();
+            textInput.focus();
+        }
+
+        function resetState() {
+            clearInterval(timer);
+            timeRemaining = 60;
+            totalTyped = 0;
+            correctTyped = 0;
+            isTestActive = false;
+            
+            timerEl.textContent = timeRemaining;
+            wpmEl.textContent = 0;
+            accuracyEl.textContent = 100;
+            
+            textInput.value = '';
+            textInput.disabled = false;
+        }
+
+        // --- Event Listeners ---
+        textInput.addEventListener('input', handleTyping);
+        restartBtn.addEventListener('click', initializeTest);
+        
+
+        textDisplay.addEventListener('click', () => {
+            textInput.focus();
+        });
+
+
+
+        function handleTyping() {
+            if (!isTestActive && timeRemaining > 0) {
+                startTimer();
+                isTestActive = true;
+            }
+
+            const charSpans = textDisplay.querySelectorAll('span:not(.caret)');
+            const typedText = textInput.value;
+            const typedIndex = typedText.length - 1;
+
+            totalTyped = typedText.length;
+            correctTyped = 0;
+
+            charSpans.forEach((charSpan, index) => {
+                const character = charSpan.innerText;
+                
+                if (index < typedText.length) {
+                    const typedChar = typedText[index];
+                    if (typedChar === character) {
+                        charSpan.className = 'correct';
+                        if (index <= typedIndex) {
+                           correctTyped++;
+                        }
+                    } else {
+                        charSpan.className = 'incorrect';
+                    }
+                } else {
+                    charSpan.className = '';
+                }
+            });
+            
+            
+            const caret = textDisplay.querySelector('.caret');
+            if (typedText.length < charSpans.length) {
+                charSpans[typedText.length].before(caret);
+            } else {
+                charSpans[charSpans.length - 1].after(caret);
+            }
+
+            updateStats();
+
+            // checking test is complete
+            if (typedText.length === charSpans.length) {
+                endTest();
+            }
+        }
+
+        function startTimer() {
+            timer = setInterval(() => {
+                timeRemaining--;
+                timerEl.textContent = timeRemaining;
+                if (timeRemaining <= 0) {
+                    endTest();
+                }
+                 if(isTestActive) {
+                    updateStats();
+                }
+            }, 1000);
+        }
+        
+        function endTest() {
+            clearInterval(timer);
+            textInput.disabled = true;
+            isTestActive = false;
+            // final calculation
+            updateStats(true); 
+            textDisplay.querySelector('.caret')?.remove();
+        }
+
+        function updateStats(isFinal = false) {
+            // WPM calculation:
+            const timeElapsed = 60 - timeRemaining;
+            const wpm = timeElapsed > 0 ? Math.round((correctTyped / 5) / (timeElapsed / 60)) : 0;
+            wpmEl.textContent = wpm;
+
+            // Accuracy calculation
+            const accuracy = totalTyped > 0 ? Math.round((correctTyped / totalTyped) * 100) : 100;
+            accuracyEl.textContent = accuracy;
+        }
+
+
+
+        document.addEventListener('DOMContentLoaded', initializeTest);
+    </script>
+</body>
+</html>
